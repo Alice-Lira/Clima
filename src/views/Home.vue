@@ -1,4 +1,78 @@
 <script setup>
+import { reactive, ref } from 'vue';
+import Search from '@/components/icons/Search.vue';
+import Location from '@/components/icons/Location.vue';
+import ClimaItem from '@/components/ClimaItem.vue';
+import Water from '@/components/icons/Water.vue';
+import Wind from '@/components/icons/Wind.vue';
+
+const apiChave = ""
+
+const dados = reactive({
+  cidade: '',
+  pais: '',
+  temperatura: '',
+  descricao: '',
+  descricaoIcon: '',
+  umidade: '',
+  ventoVel: ''
+} );
+
+const carregando = ref(false);
+const exibeResultado = ref(false);
+const inputCidade = ref("")
+const errorCidade = ref("");
+const exibeCidade = ref(true);
+
+async function consultaDadosApi(cidade) {
+  const apiClimaURL = `https://api.openweathermap.org/data/2.5/weather?q=${cidade}&units=metric&appid=${apiChave}&lang=pt_br`
+  
+  const req = await fetch(apiClimaURL);
+  const data = await req.json();
+
+  return data;
+};
+
+async function pesquisar() {
+   carregando.value = true;
+   errorCidade.value = ''; 
+   exibeResultado.value = false;
+   
+   if (inputCidade == null || inputCidade.value == '') {
+    errorCidade.value = 'Digite o nome de uma cidade.'
+    carregando.value = false;
+    return
+   };
+   
+   const dadosCidade = await consultaDadosApi(inputCidade.value);
+
+   if (dadosCidade.message == 'city not found') {
+    errorCidade.value = 'Não foi possível encontrar o clima de uma cidade com este nome.'
+    carregando.value = false;
+    return
+   };
+   
+   dados.cidade = dadosCidade.name
+   dados.temperatura = parseInt(dadosCidade.main.temp);
+   dados.descricao = dadosCidade.weather[0].description;
+   dados.descricaoIcon = ("src", `http://openweathermap.org/img/wn/${dadosCidade.weather[0].icon}.png`);
+   dados.pais = `https://flagsapi.com/${dadosCidade.sys.country}/flat/64.png`
+   dados.umidade = `${dadosCidade.main.humidity}%`
+   dados.ventoVel = `${dadosCidade.wind.speed}km/h`;
+
+   exibeCidade.value = false;
+   exibeResultado.value = true;
+   carregando.value = false;
+
+};
+
+async function selecionaCidade(cidade) {
+  exibeCidade.value = true;
+  inputCidade.value = cidade;
+  exibeCidade.value = false;
+
+ pesquisar();
+};
 
 </script>
 
@@ -9,50 +83,46 @@
       <div>
         <h3 class="text-white text-base font-bold">Confira o clima de uma cidade:</h3>
       </div>
-      <div class="flex gap-2">
-        <input type="text" placeholder="Digite uma cidade"
+      <div class="flex gap-2 ">
+        <input v-model="inputCidade" @keydown.enter="pesquisar" type="text" placeholder="Digite uma cidade"
           class=" focus:outline-none w-full border border-gray-400 rounded placeholder:text-gray-300 px-2 text-base">
-
-        <svg data-slot="icon" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
-          class="w-8 text-white bg-blue-300 rounded p-1 hover:bg-blue-200">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"></path>
-        </svg>
+        <button @click="pesquisar" class="bg-blue-300 rounded p-1 hover:bg-blue-200">
+          <Search/>
+        </button> 
       </div>
 
-      <div class="text-white space-y-1">
-        <div class="flex justify-center items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill"
-            viewBox="0 0 16 16">
-            <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6" />
-          </svg>
-          <h2 class="font-bold flex">Maringá</h2>
-          <img src="" alt="Bandeira do país">
-        </div>
-        <p class="text-sm"><span>38</span> &deg;C</p>
+      <div v-if="carregando" class="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-white rounded-full " role="status" aria-label="loading">   
+        <span class="sr-only"></span> 
+      </div>
+      <p v-if="errorCidade" class="text-sm text-gray-200">{{ errorCidade }}</p> 
 
-        <div class="flex">
-          <p>Nublado</p>
-          <img src="" alt="Condições do tempo">
+      <div v-if="exibeCidade" class="gap-4 grid grid-cols-2 border-t pt-5 px-4">
+        <button @click="selecionaCidade('maringa')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Maringá</button>
+        <button @click="selecionaCidade('curitiba')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Curitiba</button>
+        <button @click="selecionaCidade('rio de janeiro')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Rio de Janeiro</button>
+        <button @click="selecionaCidade('são Paulo')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">São Paulo</button>
+        <button @click="selecionaCidade('brasilia')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Brasília</button>
+        <button @click="selecionaCidade('porto alegre')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Porto alegre</button>
+        <button @click="selecionaCidade('florianopolis')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Florianopolis</button>
+        <button @click="selecionaCidade('fortaleza')" class="bg-blue-300 rounded-full text-xs text-white hover:bg-blue-200 p-1">Fortaleza</button>
+      </div>
+
+      <div v-if="exibeResultado" class="text-white space-y-2">
+        <div class="flex justify-center items-center gap-1 border-t pt-5 mt-5">
+          <Location/>
+          <h2 class="font-bold flex capitalize">{{dados.cidade}}</h2>
+          <img :src="dados.pais" alt="Bandeira do país" class="h-5">
+        </div>
+        <p class="text-sm"><span>{{dados.temperatura}}</span> &deg;C</p>
+
+        <div class="flex justify-center items-center">
+          <p class="text-sm font-bold capitalize">{{dados.descricao}}</p>
+          <img :src="dados.descricaoIcon" alt="Condições do tempo" class="h-10">
         </div>
 
-        <div class="flex items-center gap-1 justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-droplet-fill"
-            viewBox="0 0 16 16">
-            <path
-              d="M8 16a6 6 0 0 0 6-6c0-1.655-1.122-2.904-2.432-4.362C10.254 4.176 8.75 2.503 8 0c0 0-6 5.686-6 10a6 6 0 0 0 6 6M6.646 4.646l.708.708c-.29.29-1.128 1.311-1.907 2.87l-.894-.448c.82-1.641 1.717-2.753 2.093-3.13" />
-          </svg>
-          <p><span>48%</span></p>
-        </div>
-
-        <div class="flex items-center gap-1 justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wind"
-            viewBox="0 0 16 16">
-            <path
-              d="M12.5 2A2.5 2.5 0 0 0 10 4.5a.5.5 0 0 1-1 0A3.5 3.5 0 1 1 12.5 8H.5a.5.5 0 0 1 0-1h12a2.5 2.5 0 0 0 0-5m-7 1a1 1 0 0 0-1 1 .5.5 0 0 1-1 0 2 2 0 1 1 2 2h-5a.5.5 0 0 1 0-1h5a1 1 0 0 0 0-2M0 9.5A.5.5 0 0 1 .5 9h10.042a3 3 0 1 1-3 3 .5.5 0 0 1 1 0 2 2 0 1 0 2-2H.5a.5.5 0 0 1-.5-.5" />
-          </svg>
-          <p><span>3km/h</span></p>
+        <div class="flex justify-center">
+          <ClimaItem class="border-r pr-2 w-1/2" :text="dados.umidade" :icon="Water"/>
+          <ClimaItem class="pl-2 w-1/2" :text="dados.ventoVel" :icon="Wind"/>
         </div>
       </div>
     </div>
